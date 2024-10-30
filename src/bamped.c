@@ -172,14 +172,10 @@ void prs_arg(int argc, char **argv, arg_t *arg)
 		error("Oops! only bam input is supported. Invalid bam file [%s]\n", arg->in);
 	if (arg->mis <= 0)
 		error("Error: invalid max insert size value specified [%d]\n", arg->mis);
-	char *bai;
-	asprintf(&bai, "%s.bai", arg->in);
+	char bai[PATH_MAX];
+	snprintf(bai, PATH_MAX, "%s.bai", arg->in);
 	if (access(bai, R_OK))
-	{
-		free(bai);
 		error("Error: bam's index file (.bai) is required, please use samtools sort and index to create it.\n");
-	}
-	free(bai);
 	/*
 	 char *svg
 	if (arg->plot && !ends_with(arg->plot, ".svg"))

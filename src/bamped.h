@@ -11,9 +11,9 @@
 #include <htslib/hts.h>
 #include <htslib/tbx.h>
 #include <htslib/bgzf.h>
+#include <htslib/kstring.h>
 
 #include "ketopt.h"
-#include "kstring.h"
 #include "cgranges.h"
 #include "thpool.h"
 #include "version.h"
