@@ -4,35 +4,178 @@ int main(int argc, char *argv[])
 {
 	if (argc == 1)
 		usage();
+	setenv("FONTCONFIG_PATH", "/etc/fonts", 1);
 	arg_t *arg = calloc(1, sizeof(arg_t));
 	arg->mis = MAX_IS;
 	prs_arg(argc, argv, arg);
+	cgranges_t *gr = cr_init();
 	samFile *fp = sam_open(arg->in, "r");
 	if (!fp)
 		error("Error: failed to read input bam [%s]\n", arg->in);
-	bam_hdr_t *h = sam_hdr_read(fp);
+	bam_hdr_t *hdr = sam_hdr_read(fp);
+	// multiple ctg offsets
+	int i;
+	khint_t k;
+	uint64_t gl = 0; // genome length in total
+	kh_t *os = kh_init();
+	ld_os(hdr, os, &gl);
+	
+	/*
+	cairo_save(cr);
+	cairo_scale(cr, DIM_X, DIM_Y);
+	draw_hist(cr, pd, op->len, md);
+	cairo_restore(cr);
+	*/
+	/* dbg os
+	for (i = 0; i < hdr->n_targets; ++i)
+		printf("%s\t%d\t%"PRIu64"\n", hdr->target_name[i], hdr->target_len[i], kh_xval(os, i));
+	printf("%"PRIu64"\n", gl);
+	*/
+	// PE regions
+	ld_gr(fp, hdr, arg->mis, gr);
+	// TODO save dp to array and get max dep
+	if (arg->out && ends_with(arg->out, ".gz"))
+		out_bgzf(gr, hdr, arg->out);
+	else
+		out_bed(cg, hdr, arg->out);
+	// dep plot
+	char *tt = NULL, *st = NULL, *an = NULL;
+	cairo_t *cr = NULL;
+	cairo_surface_t *sf = NULL;
+	if (arg->plot)
+		draw_canvas(sf, cr, hdr, tt, st, an, md, gl);
+	cr_destroy(gr);
+	// TODO iterate dp array and draw to cr
+	bam_hdr_destroy(hdr);
+	hts_close(fp);
+	if (arg->plot)
+	{
+		cairo_surface_write_to_png(cairo_get_target(cr), arg->plot);
+		cairo_surface_destroy(sf);
+		cairo_destroy(cr);
+	}
+	free(arg);
+	return 0;
+}
+
+void ld_os(bam_hdr_t *hdr, kh_t *os, uint64_t *gl)
+{
+	int i, shift = 0;
+	for (i = 0; i < hdr->n_targets; ++i)
+	{
+		kh_ins(os, i, shift);
+		shift += hdr->target_len[i];
+	}
+	*gl = shift;
+}
+
+void ld_cr(samFile *fp, bam_hdr_t *h, int mis, cgranges_t *cr)
+{
 	bam1_t *b = bam_init1();
-	cgranges_t *cr = cr_init();
 	while (sam_read1(fp, h, b) >= 0)
 	{
 		bam1_core_t *c = &b->core;
 		if (c->flag & (BAM_FQCFAIL | BAM_FUNMAP | BAM_FREVERSE | BAM_FSECONDARY | BAM_FSUPPLEMENTARY))
 			continue;
-		if ((c->flag & BAM_FPAIRED) && (c->tid == c->mtid) && c->isize <= arg->mis)
+		if ((c->flag & BAM_FPAIRED) && (c->tid == c->mtid) && c->isize <= mis)
 			cr_add(cr, h->target_name[c->tid], c->pos, c->pos + c->isize, 0);
 	}
+	bam_destroy1(b);
 	cr_sort(cr);
 	cr_index(cr);
-	if (arg->out && ends_with(arg->out, ".gz"))
-		out_bgzf(cr, h, arg->out);
+}
+
+void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, const char *tt,
+		const char *st, const char *an, int md, int gl)
+{
+	sf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, WIDTH, HEIGHT);
+	cv = cairo_create(sf);
+	cairo_set_antialias(cr, CAIRO_ANTIALIAS_BEST);
+	draw_rrect(cr);
+	cairo_set_source_rgb (cr, 0, 0, 0);
+	cairo_translate(cr, MARGIN / 1.25, MARGIN / 2.0);
+	// axis labels
+	double x, y;
+	cairo_text_extents_t ext;
+	//cairo_set_source_rgb(cr, 0.25, 0.25, 0.25);
+	if (tt) // title
+	{
+		cairo_set_font_size(cr, 24.0);
+		cairo_select_font_face(cr, "serif", CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_text_extents(cr, tt, &ext);
+		x = DIM_X / 2.0 - (ext.width / 2.0 + ext.x_bearing);
+		y = ext.height / 2 + ext.y_bearing;
+		cairo_move_to(cr, x, y);
+		cairo_show_text(cr, tt);
+	}
+	if (st) // sub-title
+	{
+		cairo_set_font_size(cr, 24.0);
+		cairo_select_font_face(cr, "serif", CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_text_extents(cr, st, &ext);
+		x = DIM_X / 2.0 - (ext.width / 2.0 + ext.x_bearing);
+		y = ext.height + ext.y_bearing;
+		cairo_move_to(cr, x, y);
+		cairo_show_text(cr, st);
+	}
+	if (an) // zlab
+	{
+		char zlab[NAME_MAX];
+		sprintf(zlab, "%s", an);
+		cairo_select_font_face(cr, "Open Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_text_extents(cr, zlab, &ext);
+		x = DIM_X - (ext.width + ext.x_bearing);
+		y = ext.height / 2 + ext.y_bearing;
+		cairo_move_to(cr, x, y);
+		cairo_show_text(cr, zlab);
+	}
+	// xlab
+	char xlab[] = "Genome coordinates";
+	char ylab[] = "Depth (PE)";
+	cairo_select_font_face(cr, "Open Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_text_extents(cr, xlab, &ext);
+	x = DIM_X / 2.0 - (ext.width / 2.0 + ext.x_bearing);
+	y = DIM_Y + MARGIN / 4.0 - (ext.height / 2 + ext.y_bearing);
+	cairo_move_to(cr, x, y);
+	cairo_show_text(cr, xlab);
+	cairo_save(cr);
+	// ylab
+	cairo_translate(cr, MARGIN / 1.25, HEIGHT / 2.0); // translate origin to the center
+	cairo_rotate(cr, 3 * M_PI / 2.0);
+	cairo_text_extents(cr, ylab, &ext);
+	cairo_move_to(cr, MARGIN / 2.5, -MARGIN * 1.25);
+	cairo_show_text(cr, ylab);
+	cairo_restore(cr);
+	// axis
+	draw_arrow(cr, 0, DIM_Y, DIM_X, DIM_Y); // xaxis
+	double w1 = 1.0, w2 = 1.0;
+	cairo_device_to_user_distance(cr, &w1, &w2);
+	cairo_set_line_width(cr, fmin(w1, w2));
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_move_to(cr, 0, 0);
+	cairo_line_to(cr, 0, DIM_Y); // yaxis
+	draw_yticks(cr, md);
+	char buf[sizeof(uint64_t) * 8 + 1];
+	if (gl >= 1e9)
+		sprintf(buf, "%.2fG", gl * 1.0e-9);
+	else if (gl >= 1e6)
+		sprintf(buf, "%.2fM", gl * 1.0e-6);
+	else if (gl >= 1e3)
+		sprintf(buf, "%.2fK", gl * 1.0e-3);
 	else
-		out_bed(cr, h, arg->out);
-	cr_destroy(cr);
-	bam_hdr_destroy(h);
-	bam_destroy1(b);
-	hts_close(fp);
-	free(arg);
-	return 0;
+		sprintf(buf, "%"PRIu64, gl);
+	cairo_select_font_face(cr, "Open Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+	cairo_text_extents(cr, buf, &ext);
+	x = DIM_X - ext.width - ext.x_bearing;
+	y = DIM_Y + MARGIN / 4.0 - (ext.height / 2 + ext.y_bearing);
+	cairo_move_to(cr, x, y);
+	cairo_show_text(cr, buf);
+}
+
+void draw_ped(cairo_t *cr, kh_t *os, int md, dp_t *dp)
+{
+	;
 }
 
 void out_bed(const cgranges_t *cr, bam_hdr_t *h, const char *out)

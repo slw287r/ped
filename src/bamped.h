@@ -16,6 +16,7 @@
 #include "ketopt.h"
 #include "cgranges.h"
 #include "thpool.h"
+#include "plot.h"
 #include "version.h"
 
 extern const char *__progname;
@@ -55,8 +56,10 @@ static ko_longopt_t long_options[] = {
 };
 
 void prs_arg(int argc, char **argv, arg_t *arg);
-void out_bed(const cgranges_t *cr, bam_hdr_t *h, const char *out);
-void out_bgzf(const cgranges_t *cr, bam_hdr_t *h, const char *out);
+void ld_os(bam_hdr_t *hdr, kh_t *os, uint64_t *gl);
+void ld_gr(samFile *fp, bam_hdr_t *h, int mis, cgranges_t *gr);
+void out_bed(const cgranges_t *gr, bam_hdr_t *h, const char *out);
+void out_bgzf(const cgranges_t *gr, bam_hdr_t *h, const char *out);
 int is_gzip(const char *fn);
 bool ends_with(const char *str, const char *sfx);
 int strlen_wo_esc(const char *str);
