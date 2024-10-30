@@ -1,0 +1,22 @@
+ARCH := $(shell arch)
+ifeq ($(ARCH),x86_64)
+CFLAGS=-Wall -O3 -static
+LIBS=-lhts -lpthread -ldeflate -lisal -lcairo -lfontconfig -lpixman-1 -lfreetype -lexpat -lzip -lbz2 -llzma -lpng -lm -ldl -lz
+else
+CFLAGS=-Wall -O3 -march=native
+LIBS=-lhts -lisal -lm -lcairo
+endif
+
+CC=cc
+
+SRC = $(wildcard *.c)
+OBJS = $(patsubst %.c, %.o, $(SRC))
+
+bamped: $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+test: bamped
+	$^ -i ../dat/toy.bam -o ../dat/toy.bed.gz
+
+clean:
+	rm -f bamped *.o ../dat/toy.bed*
