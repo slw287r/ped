@@ -531,7 +531,7 @@ static void usage()
 	puts("  -i, --in  \e[3mFILE\e[0m   Input BAM file with bai index");
 	puts("  -o, --out \e[3mSTR\e[0m    Output PE depth bed\e[90m[.gz]\e[0m file \e[90m[stdout]\e[0m");
 	printf("  -m, --mis \e[3mINT\e[0m    Maximum insert size allowed \e[90m[%d]\e[0m\n", MAX_IS);
-	puts("  -p, --plot \e[3mFILE\e[0m  Depth plot svg file \e[90m[none]\e[0m");
+	puts("  -p, --plot \e[3mFILE\e[0m  Depth plot png file \e[90m[none]\e[0m");
 	puts("  -s, --sub \e[3mFILE\e[0m   Sub-title of depth plot \e[90m[none]\e[0m");
 	putchar('\n');
 	puts("  -h               Show help message");
