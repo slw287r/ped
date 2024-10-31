@@ -1,4 +1,4 @@
-#include "plot.h"
+#include "dplot.h"
 
 void kh_ins(kh_t *h, uint64_t n, uint64_t v)
 {
@@ -13,7 +13,7 @@ void kh_ins(kh_t *h, uint64_t n, uint64_t v)
 		kh_val(h, k) += v;
 }
 
-uint64_t kh_xval(kh_t *h, const uint64_t n)
+uint64_t kh_xval(const kh_t *h, const uint64_t n)
 {
 	khint_t k;
 	k = kh_get(h, n);
@@ -137,6 +137,8 @@ void draw_yticks(cairo_t *cr, const int ymax)
 	cairo_set_line_width(cr, fmin(w1, w2));
 	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
 	cairo_text_extents_t ext;
+	const double dashes[] = {0.75, 5.0, 0.75, 5.0};
+	int ndash = sizeof(dashes) / sizeof(dashes[0]);
 	char buf[sizeof(uint64_t) * 8 + 1];
 	double h = ceil(log10(ymax));
 	cairo_text_extents(cr, "m", &ext);
@@ -153,12 +155,28 @@ void draw_yticks(cairo_t *cr, const int ymax)
 		// major ticks
 		cairo_move_to(cr, 0, DIM_Y - y * DIM_Y);
 		cairo_line_to(cr, x_offset * .75, DIM_Y - y * DIM_Y);
+		cairo_stroke(cr);
+			cairo_set_line_width(cr, fmin(w1, w2) / 4);
+			cairo_set_dash(cr, dashes, ndash, 0);
+			cairo_move_to(cr, x_offset * .75, DIM_Y - y * DIM_Y);
+			cairo_line_to(cr, DIM_X, DIM_Y - y * DIM_Y);
+			cairo_stroke(cr);
+			cairo_set_dash(cr, dashes, 0, 0);
+			cairo_set_line_width(cr, fmin(w1, w2) / 2);
 		// minor ticks
 		for (j = 2; j <= 9 && i < h; ++j)
 		{
 			y = (log10((11 - j) * pow(10, i)) + 1)  / (h + 1);
 			cairo_move_to(cr, 0, DIM_Y - y * DIM_Y);
 			cairo_line_to(cr, x_offset * .375, DIM_Y - y * DIM_Y);
+			cairo_stroke(cr);
+			cairo_set_line_width(cr, fmin(w1, w2) / 5);
+			cairo_set_dash(cr, dashes, ndash, 0);
+			cairo_move_to(cr, x_offset * .375, DIM_Y - y * DIM_Y);
+			cairo_line_to(cr, DIM_X, DIM_Y - y * DIM_Y);
+			cairo_stroke(cr);
+			cairo_set_dash(cr, dashes, 0, 0);
+			cairo_set_line_width(cr, fmin(w1, w2) / 2);
 		}
 	}
 	cairo_stroke(cr);

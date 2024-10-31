@@ -16,7 +16,8 @@ bamped: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 test: bamped
-	$^ -i ../dat/toy.bam -o ../dat/toy.bed.gz
+	$^ -i ../dat/toy.bam -o ../dat/toy.bed.gz -p ../dat/toy.png -s 'Talaromyces marneffei'
+	open ../dat/toy.png
 
 clean:
-	rm -f bamped *.o ../dat/toy.bed*
+	rm -f bamped *.o ../dat/toy.bed* ../dat/toy.png ../dat/toy.svg
