@@ -360,6 +360,7 @@ void out_bgzf(const cgranges_t *cr, bam_hdr_t *hdr, const char *out)
 {
 	int64_t i, j, d = 0, n, p = 0, *cr_b = 0, max_b = 0;
 	kstring_t ks = {0, 0, NULL};
+	BGZF *fp = bgzf_open(out, "w");
 	for (i = 0; i < hdr->n_targets; ++i)
 	{
 		for (j = 0; j < hdr->target_len[i]; ++j)
@@ -371,6 +372,12 @@ void out_bgzf(const cgranges_t *cr, bam_hdr_t *hdr, const char *out)
 					if (p)
 					{
 						ksprintf(&ks, "%"PRId64"\t%"PRId64"\n", p + 1, d);
+						if (ks.l >= BGZF_BLOCK_SIZE)
+						{
+							if (ks.l != bgzf_write(fp, ks.s, ks.l))
+								error("Error writing to file [%s]\n", out);
+							ks.l = 0;
+						}
 						d = p = 0;
 					}
 					ksprintf(&ks, "%s\t%"PRId64"\t", hdr->target_name[i], j);
@@ -389,13 +396,50 @@ void out_bgzf(const cgranges_t *cr, bam_hdr_t *hdr, const char *out)
 			ksprintf(&ks, "%"PRId64"\t%"PRId64"\n", p + 1, d);
 		d = p = 0;
 	}
-	BGZF *fp = bgzf_open(out, "w");
-	if (ks.l != bgzf_write(fp, ks.s, ks.l))
+	if (ks.l && ks.l != bgzf_write(fp, ks.s, ks.l))
 		error("Error writing to file [%s]\n", out);
+	ks.l = 0;
 	bgzf_close(fp);
     tbx_conf_t conf = tbx_conf_bed;
 	if(tbx_index_build3(out, NULL, 14, 8, &conf))
 		error("Error building index for [%s]\n", out);
+	ks_release(&ks);
+}
+
+void dump_dp(bam_hdr_t *hdr, dp_t *dp, uint64_t nd, const char *out)
+{
+	uint64_t i;
+	kstring_t ks = {0, 0, NULL};
+	if (out && ends_with(out, ".gz"))
+	{
+		BGZF *fp = bgzf_open(out, "w");
+		for (i = 0; i < nd; ++i)
+		{
+			ksprintf(&ks, "%s\t%"PRIu64"\t%"PRIu64"\t%d\n", hdr->target_name[dp[i].tid],
+					dp[i].pos, dp[i].pos + dp[i].len, dp[i].dep);
+			if (ks.l >= BGZF_BLOCK_SIZE)
+			{
+				if (ks.l != bgzf_write(fp, ks.s, ks.l))
+					error("Error writing to file [%s]\n", out);
+				ks.l = 0;
+			}
+		}
+		if (ks.l && ks.l != bgzf_write(fp, ks.s, ks.l))
+			error("Error writing to file [%s]\n", out);
+		ks.l = 0;
+		bgzf_close(fp);
+		tbx_conf_t conf = tbx_conf_bed;
+		if(tbx_index_build3(out, NULL, 14, 8, &conf))
+			error("Error building index for [%s]\n", out);
+	}
+	else
+	{
+		FILE *fp = out ? fopen(out, "w") : stdout;
+		for (i = 0; i < nd; ++i)
+			fprintf(fp, "%s\t%"PRIu64"\t%"PRIu64"\t%d\n", hdr->target_name[dp[i].tid],
+					dp[i].pos, dp[i].pos + dp[i].len, dp[i].dep);
+		fclose(fp);
+	}
 	ks_release(&ks);
 }
 
