@@ -516,6 +516,14 @@ void horiz_em(const int _n)
 	fputc('\n', stdout);
 }
 
+void pe_dep_sch()
+{
+	puts("\e[90m                            ┌─┐\n"
+		"                    ┌───────┘ └───┐\n"
+		"              ──────┴─────────────┴──────\e[0m\n"
+		"                    \e[31m——→\e[0m    \e[34m←——\e[0m\n"
+		"                            \e[31m——\e[0m\e[34m←\e[0m\e[31m→\e[0m\e[34m——\e[0m");
+}
 
 static void usage()
 {
@@ -524,6 +532,7 @@ static void usage()
 	char title[] = "\e[1mCalculate the Paired-End depth of microbial genome\e[0m";
 	int title_len = strlen_wo_esc(title);
 	printf("%*.*s\n", (int)((w - title_len) / 2 + strlen(title)), (int)strlen(title), title);
+	pe_dep_sch();
 	horiz(w);
 	printf("%s \e[1mUsage\e[0m: \e[1;31m%s\e[0;0m \e[1;90m[options]\e[0;0m --in <bam> --out <bed>\n", BUL, __progname);
 	putchar('\n');
