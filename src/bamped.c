@@ -17,11 +17,11 @@ int main(int argc, char *argv[])
 	uint64_t gl = 0, nd = 0; // genome length in total
 	kh_t *os = kh_init();
 	ld_os(hdr, os, &gl);
-	/* dbg os
+	// dbg os
 	for (i = 0; i < hdr->n_targets; ++i)
 		printf("%s\t%d\t%"PRIu64"\n", hdr->target_name[i], hdr->target_len[i], kh_xval(os, i));
 	printf("%"PRIu64"\n", gl);
-	*/
+	//
 	// PE regions
 	ld_gr(fp, hdr, arg->mis, gr);
 	cairo_t *cr = NULL;
@@ -194,7 +194,7 @@ void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, const kh_t *o
 	for (i = 1; i < hdr->n_targets; i += 2)
 	{
 		x = kh_xval(os, i);
-		cairo_rectangle(cr, DIM_X * (double)x / gl, 0, DIM_X * hdr->target_len[i] / gl, DIM_Y);
+		cairo_rectangle(cr, (double)DIM_X * x / gl, 0, (double)DIM_X * hdr->target_len[i] / gl, DIM_Y);
 		cairo_fill(cr);
 	}
 }
