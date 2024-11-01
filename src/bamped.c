@@ -87,7 +87,8 @@ int main(int argc, char *argv[])
 
 void ld_os(bam_hdr_t *hdr, kh_t *os, uint64_t *gl)
 {
-	int i, shift = 0;
+	int i;
+	uint64_t shift = 0;
 	for (i = 0; i < hdr->n_targets; ++i)
 	{
 		kh_ins(os, i, shift);
