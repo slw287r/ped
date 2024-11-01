@@ -59,7 +59,7 @@ static ko_longopt_t long_options[] = {
 void prs_arg(int argc, char **argv, arg_t *arg);
 void ld_os(bam_hdr_t *hdr, kh_t *os, uint64_t *gl);
 void ld_gr(samFile *fp, bam_hdr_t *h, int mis, cgranges_t *gr);
-void ld_dp(const cgranges_t *cr, bam_hdr_t *h, dp_t **dp, int *md, int *nd);
+void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64_t *nd);
 void out_bed(const cgranges_t *gr, bam_hdr_t *h, const char *out);
 void out_bgzf(const cgranges_t *gr, bam_hdr_t *h, const char *out);
 void prep_an(const dp_t *dp, int nd, int gl, char *an);

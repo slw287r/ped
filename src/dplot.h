@@ -26,7 +26,8 @@ KHASHL_MAP_INIT(KH_LOCAL, kh_t, kh, uint64_t, uint64_t, kh_hash_uint64, kh_eq_ge
 
 typedef struct
 {
-	int tid, pos, len, dep;
+	int tid, dep;
+	uint64_t pos, len;
 } dp_t;
 
 void kh_ins(kh_t *h, uint64_t n, uint64_t v);

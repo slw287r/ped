@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 		error("Error: failed to read input bam [%s]\n", arg->in);
 	bam_hdr_t *hdr = sam_hdr_read(fp);
 	// multiple ctg offsets
-	uint64_t gl = 0; // genome length in total
+	uint64_t gl = 0, nd = 0; // genome length in total
 	kh_t *os = kh_init();
 	ld_os(hdr, os, &gl);
 	/* dbg os
@@ -35,7 +35,8 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		int i, md = 0, nd = 0;
+		uint64_t i;
+		uint32_t md = 0;
 		dp_t *dp = NULL;
 		ld_dp(gr, hdr, &dp, &md, &nd);
 		/* debug dp
@@ -259,7 +260,7 @@ void draw_ped1(cairo_t *cr, kh_t *os, int md, int gl, dp_t *dp)
 	}
 }
 
-void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, int *md, int *nd)
+void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64_t *nd)
 {
 	int64_t i, j, d = 0, m = CHUNK, n, p = 0, *cr_b = 0, max_b = 0;
 	*dp = malloc(m * sizeof(dp_t));
