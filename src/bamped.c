@@ -13,33 +13,51 @@ int main(int argc, char *argv[])
 	if (!fp)
 		error("Error: failed to read input bam [%s]\n", arg->in);
 	bam_hdr_t *hdr = sam_hdr_read(fp);
+	int i, ci = -1;
+	// check ctg
+	if (arg->ctg)
+	{
+		for (i = 0; i < hdr->n_targets; ++i)
+		{
+			if (!strcmp(hdr->target_name[i], arg->ctg))
+			{
+				ci = i;
+				break;
+			}
+		}
+		if (ci == -1)
+		{
+			fprintf(stderr, "%s Error: specified contig [%s] not found in bam\n", ERR, arg->ctg);
+			fprintf(stderr, "Please use samtools view -H %s to view contigs contained\n", arg->in);
+			exit(EXIT_FAILURE);
+		}
+	}
 	// multiple ctg offsets
 	uint64_t gl = 0, nd = 0; // genome length in total
 	kh_t *os = kh_init();
-	ld_os(hdr, os, &gl);
+	ld_os(hdr, ci, os, &gl);
 	/* dbg os
-	int i;
 	for (i = 0; i < hdr->n_targets; ++i)
 		printf("%s\t%d\t%"PRIu64"\n", hdr->target_name[i], hdr->target_len[i], kh_xval(os, i));
 	printf("%"PRIu64"\n", gl);
 	*/
 	// PE regions
-	ld_gr(fp, hdr, arg->mis, gr);
+	ld_gr(fp, hdr, ci, arg->mis, gr);
 	cairo_t *cr = NULL;
 	cairo_surface_t *sf = NULL;
 	if (!arg->plot)
 	{
 		if (arg->out && ends_with(arg->out, ".gz"))
-			out_bgzf(gr, hdr, arg->out);
+			out_bgzf(gr, hdr, ci, arg->out);
 		else
-			out_bed(gr, hdr, arg->out);
+			out_bed(gr, hdr, ci, arg->out);
 	}
 	else
 	{
 		uint64_t i;
 		uint32_t md = 0;
 		dp_t *dp = NULL;
-		ld_dp(gr, hdr, &dp, &md, &nd);
+		ld_dp(gr, hdr, ci, &dp, &md, &nd);
 		/* debug dp
 		for (i = 0; i < nd; ++i)
 			printf("%s\t%d\t%d\t%d\n", hdr->target_name[dp[i].tid], dp[i].pos, dp[i].pos + dp[i].len, dp[i].dep);
@@ -57,9 +75,11 @@ int main(int argc, char *argv[])
 		char *p = strrchr(arg->in, '/');
 		snprintf(tt, PATH_MAX, "%s", p ? p + 1 : arg->in);
 		*strstr(tt, ".bam") = '\0';
+		if (ci != -1)
+			snprintf(tt, PATH_MAX, "%s: %s", tt, arg->ctg);
 		// prepare anno
 		prep_an(dp, nd, gl, an);
-		draw_canvas(sf, cr, hdr, os, tt, arg->sub, an, md, gl);
+		draw_canvas(sf, cr, hdr, ci, os, tt, arg->sub, an, md, gl);
 		cairo_save(cr);
 		cairo_scale(cr, DIM_X, DIM_Y);
 		// iterate dp array and draw to cr
@@ -85,25 +105,35 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-void ld_os(bam_hdr_t *hdr, kh_t *os, uint64_t *gl)
+void ld_os(bam_hdr_t *hdr, int ci, kh_t *os, uint64_t *gl)
 {
 	int i;
 	uint64_t shift = 0;
-	for (i = 0; i < hdr->n_targets; ++i)
+	if (ci != -1)
 	{
-		kh_ins(os, i, shift);
-		shift += hdr->target_len[i];
+		kh_ins(os, ci, 0);
+		*gl = hdr->target_len[ci];
 	}
-	*gl = shift;
+	else
+	{
+		for (i = 0; i < hdr->n_targets; ++i)
+		{
+			kh_ins(os, i, shift);
+			shift += hdr->target_len[i];
+		}
+		*gl = shift;
+	}
 }
 
-void ld_gr(samFile *fp, bam_hdr_t *hdr, int mis, cgranges_t *cr)
+void ld_gr(samFile *fp, bam_hdr_t *hdr, int ci, int mis, cgranges_t *cr)
 {
 	bam1_t *b = bam_init1();
 	while (sam_read1(fp, hdr, b) >= 0)
 	{
 		bam1_core_t *c = &b->core;
 		if (c->flag & (BAM_FQCFAIL | BAM_FUNMAP | BAM_FREVERSE | BAM_FSECONDARY | BAM_FSUPPLEMENTARY))
+			continue;
+		if (ci != -1 && c->tid != ci)
 			continue;
 		if ((c->flag & BAM_FPAIRED) && (c->tid == c->mtid) && c->isize <= mis)
 			cr_add(cr, hdr->target_name[c->tid], c->pos, c->pos + c->isize, 0);
@@ -130,8 +160,9 @@ void prep_an(const dp_t *dp, uint64_t nd, uint64_t gl, char *an)
 		snprintf(an, NAME_MAX, "Genome coverage: %.*f%%", fmin(100, cl) == 100 ? 0 : 2, fmin(100, cl));
 }
 
-void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, const kh_t *os,
-		const char *tt, const char *st, const char *an, uint32_t md, uint64_t gl)
+void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, int ci,
+		const kh_t *os, const char *tt, const char *st, const char *an, uint32_t md,
+		uint64_t gl)
 {
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_BEST);
 	draw_rrect(cr);
@@ -193,11 +224,14 @@ void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, const kh_t *o
 	// contig shades
 	int i;
 	cairo_set_source_rgb(cr, 0.9, 0.9, 0.9);
-	for (i = 1; i < hdr->n_targets; i += 2)
+	if (ci == -1)
 	{
-		x = kh_xval(os, i);
-		cairo_rectangle(cr, (double)DIM_X * x / gl, 0, (double)DIM_X * hdr->target_len[i] / gl, DIM_Y);
-		cairo_fill(cr);
+		for (i = 1; i < hdr->n_targets; i += 2)
+		{
+			x = kh_xval(os, i);
+			cairo_rectangle(cr, (double)DIM_X * x / gl, 0, (double)DIM_X * hdr->target_len[i] / gl, DIM_Y);
+			cairo_fill(cr);
+		}
 	}
 }
 
@@ -263,12 +297,15 @@ void draw_ped1(cairo_t *cr, kh_t *os, uint32_t md, uint64_t gl, dp_t *dp)
 	}
 }
 
-void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64_t *nd)
+void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, int ci, dp_t **dp, uint32_t *md,
+		uint64_t *nd)
 {
 	int64_t i, j, d = 0, m = CHUNK, n, p = 0, *cr_b = 0, max_b = 0;
 	*dp = malloc(m * sizeof(dp_t));
 	for (i = 0; i < hdr->n_targets; ++i)
 	{
+		if (ci != -1 && i != ci)
+			continue;
 		for (j = 0; j < hdr->target_len[i]; ++j)
 		{
 			if ((n = cr_overlap(cr, hdr->target_name[i], j, j, &cr_b, &max_b)))
@@ -322,12 +359,14 @@ void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64
 	free(cr_b);
 }
 
-void out_bed(const cgranges_t *cr, bam_hdr_t *hdr, const char *out)
+void out_bed(const cgranges_t *cr, bam_hdr_t *hdr, int ci, const char *out)
 {
 	int64_t i, j, d = 0, n, p = 0, *cr_b = 0, max_b = 0;
 	FILE *fp = out ? fopen(out, "w") : stdout;
 	for (i = 0; i < hdr->n_targets; ++i)
 	{
+		if (ci != -1 && i != ci)
+			continue;
 		for (j = 0; j < hdr->target_len[i]; ++j)
 		{
 			if ((n = cr_overlap(cr, hdr->target_name[i], j, j, &cr_b, &max_b)))
@@ -359,13 +398,15 @@ void out_bed(const cgranges_t *cr, bam_hdr_t *hdr, const char *out)
 	free(cr_b);
 }
 
-void out_bgzf(const cgranges_t *cr, bam_hdr_t *hdr, const char *out)
+void out_bgzf(const cgranges_t *cr, bam_hdr_t *hdr, int ci, const char *out)
 {
 	int64_t i, j, d = 0, n, p = 0, *cr_b = 0, max_b = 0;
 	kstring_t ks = {0, 0, NULL};
 	BGZF *fp = bgzf_open(out, "w");
 	for (i = 0; i < hdr->n_targets; ++i)
 	{
+		if (ci != -1 && i != ci)
+			continue;
 		for (j = 0; j < hdr->target_len[i]; ++j)
 		{
 			if ((n = cr_overlap(cr, hdr->target_name[i], j, j, &cr_b, &max_b)))
@@ -474,7 +515,7 @@ void prs_arg(int argc, char **argv, arg_t *arg)
 {
 	int c = 0;
 	ketopt_t opt = KETOPT_INIT;
-	const char *opt_str = "i:o:m:p:s:hv";
+	const char *opt_str = "i:o:m:p:s:c:hv";
 	while ((c = ketopt(&opt, argc, argv, 1, opt_str, long_options)) >= 0)
 	{
 		switch (c)
@@ -484,6 +525,7 @@ void prs_arg(int argc, char **argv, arg_t *arg)
 			case 'm': arg->mis = atoi(opt.arg); break;
 			case 'p': arg->plot = opt.arg; break;
 			case 's': arg->sub = opt.arg; break;
+			case 'c': arg->ctg = opt.arg; break;
 			case 'h': usage(); break;
 			case 'v':
 				if (strlen(BRANCH_COMMIT))
@@ -586,6 +628,7 @@ static void usage()
 	printf("  -m, --mis \e[3mINT\e[0m    Maximum insert size allowed \e[90m[%d]\e[0m\n", MAX_IS);
 	puts("  -p, --plot \e[3mFILE\e[0m  Depth plot png file \e[90m[none]\e[0m");
 	puts("  -s, --sub \e[3mFILE\e[0m   Sub-title of depth plot \e[90m[none]\e[0m");
+	puts("  -c, --ctg \e[3mSTR\e[0m    Restrict analysis to this contig \e[90m[none]\e[0m");
 	putchar('\n');
 	puts("  -h               Show help message");
 	puts("  -v               Display program version");
