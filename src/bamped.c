@@ -70,13 +70,13 @@ int main(int argc, char *argv[])
 		else
 			error("Error: unsupported plot format: [%s]\n", arg->plot);
 		cr = cairo_create(sf);
-		char tt[PATH_MAX] = {'\0'}, an[NAME_MAX] = {'\0'};
+		char *tt, an[NAME_MAX] = {'\0'};
 		// prepare title
 		char *p = strrchr(arg->in, '/');
-		snprintf(tt, PATH_MAX / 2, "%s", p ? p + 1 : arg->in);
+		asprintf(&tt, "%s", p ? p + 1 : arg->in);
 		*strstr(tt, ".bam") = '\0';
 		if (ci != -1)
-			snprintf(tt, PATH_MAX, "%s: %s", tt, arg->ctg);
+			asprintf(&tt, "%s: %s", tt, arg->ctg);
 		// prepare anno
 		prep_an(dp, nd, gl, an);
 		draw_canvas(sf, cr, hdr, ci, os, tt, arg->sub, an, md, gl);
