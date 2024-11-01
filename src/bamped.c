@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
 	kh_t *os = kh_init();
 	ld_os(hdr, os, &gl);
 	// dbg os
+	int i;
 	for (i = 0; i < hdr->n_targets; ++i)
 		printf("%s\t%d\t%"PRIu64"\n", hdr->target_name[i], hdr->target_len[i], kh_xval(os, i));
 	printf("%"PRIu64"\n", gl);
