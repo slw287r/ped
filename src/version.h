@@ -1,2 +1,2 @@
 #define VERSION "0.1.0"
-#define BRANCH_COMMIT "main b30cd20"
+#define BRANCH_COMMIT "main ddd3903"
