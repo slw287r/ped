@@ -105,29 +105,6 @@ void draw_arrow(
 	cairo_fill(cr);
 }
 
-void draw_hist(cairo_t *cr, kh_t *pd, const uint64_t xmax, const int ymax)
-{
-	khint_t k;
-	double w1 = 1.0, w2 = 1.0, x, y;
-	cairo_device_to_user_distance(cr, &w1, &w2);
-	cairo_set_line_width(cr, fmin(w1, w2));
-	cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
-	cairo_set_source_rgb(cr, 87 / 255.0, 122 / 255.0, 166 / 255.0);
-	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-	double h = ceil(log10(ymax)) + 1;
-	for (k = 0; k != kh_end(pd); ++k)
-	{
-		if (kh_exist(pd, k) && kh_val(pd, k))
-		{
-			x = (double)kh_key(pd, k) / xmax;
-			y = (log10(kh_val(pd, k)) + 1) / h;
-			cairo_move_to(cr, x, 1);
-			cairo_line_to(cr, x, 1 - y);
-			cairo_stroke(cr);
-		}
-	}
-}
-
 void draw_yticks(cairo_t *cr, const int ymax)
 {
 	int i, j;

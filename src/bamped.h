@@ -62,11 +62,11 @@ void ld_gr(samFile *fp, bam_hdr_t *h, int mis, cgranges_t *gr);
 void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64_t *nd);
 void out_bed(const cgranges_t *gr, bam_hdr_t *h, const char *out);
 void out_bgzf(const cgranges_t *gr, bam_hdr_t *h, const char *out);
-void prep_an(const dp_t *dp, int nd, int gl, char *an);
+void prep_an(const dp_t *dp, uint64_t nd, uint64_t gl, char *an);
 void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, const kh_t *os,
-		const char *tt, const char *st, const char *an, int md, int gl);
-void draw_ped1(cairo_t *cr, kh_t *os, int md, int gl, dp_t *dp);
-void draw_axis(cairo_t *cr, int md, int gl);
+		const char *tt, const char *st, const char *an, uint32_t md, uint64_t gl);
+void draw_ped1(cairo_t *cr, kh_t *os, uint32_t md, uint64_t gl, dp_t *dp);
+void draw_axis(cairo_t *cr, uint32_t md, uint64_t gl);
 int is_gzip(const char *fn);
 bool ends_with(const char *str, const char *sfx);
 int strlen_wo_esc(const char *str);

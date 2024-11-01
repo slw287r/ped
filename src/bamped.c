@@ -110,9 +110,9 @@ void ld_gr(samFile *fp, bam_hdr_t *hdr, int mis, cgranges_t *cr)
 	cr_index(cr);
 }
 
-void prep_an(const dp_t *dp, int nd, int gl, char *an)
+void prep_an(const dp_t *dp, uint64_t nd, uint64_t gl, char *an)
 {
-	int i;
+	uint64_t i;
 	double cl = 0.0f;
 	for (i = 0; i < nd; ++i)
 		cl += dp[i].len;
@@ -128,7 +128,7 @@ void prep_an(const dp_t *dp, int nd, int gl, char *an)
 }
 
 void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, const kh_t *os,
-		const char *tt, const char *st, const char *an, int md, int gl)
+		const char *tt, const char *st, const char *an, uint32_t md, uint64_t gl)
 {
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_BEST);
 	draw_rrect(cr);
@@ -198,7 +198,7 @@ void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, const kh_t *o
 	}
 }
 
-void draw_axis(cairo_t *cr, int md, int gl)
+void draw_axis(cairo_t *cr, uint32_t md, uint64_t gl)
 {
 	double x, y;
 	cairo_text_extents_t ext;
@@ -220,7 +220,7 @@ void draw_axis(cairo_t *cr, int md, int gl)
 	else if (gl >= 1e3)
 		sprintf(buf, "%.2fK", gl * 1.0e-3);
 	else
-		sprintf(buf, "%d", gl);
+		sprintf(buf, "%"PRIu64, gl);
 	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_text_extents(cr, buf, &ext);
 	x = DIM_X - ext.width - ext.x_bearing;
@@ -229,7 +229,7 @@ void draw_axis(cairo_t *cr, int md, int gl)
 	cairo_show_text(cr, buf);
 }
 
-void draw_ped1(cairo_t *cr, kh_t *os, int md, int gl, dp_t *dp)
+void draw_ped1(cairo_t *cr, kh_t *os, uint32_t md, uint64_t gl, dp_t *dp)
 {
 	double w1 = 1.0, w2 = 1.0, x, y, w, h;
 	cairo_device_to_user_distance(cr, &w1, &w2);
@@ -274,7 +274,6 @@ void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64
 				{
 					if (p)
 					{
-						//fprintf(fp, "%"PRId64"\t%"PRId64"\n", p + 1, d);
 						(*dp)[*nd].len = j - (*dp)[*nd].pos + 1;
 						d = p = 0;
 						if (++*nd == m)
@@ -283,7 +282,6 @@ void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64
 							*dp = realloc(*dp, m * sizeof(dp_t));
 						}
 					}
-					//fprintf(fp, "%s\t%"PRId64"\t", hdr->target_name[i], j);
 					(*dp)[*nd].tid = i;
 					(*dp)[*nd].pos = j;
 					(*dp)[*nd].dep = n;
@@ -296,7 +294,6 @@ void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64
 			{
 				if (d)
 				{
-					//fprintf(fp, "%"PRId64"\t%"PRId64"\n", p + 1, d);
 					(*dp)[*nd].len = j - (*dp)[*nd].pos + 1;
 					if (++*nd == m)
 					{
@@ -309,7 +306,6 @@ void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64
 		}
 		if (d)
 		{
-			//fprintf(fp, "%"PRId64"\t%"PRId64"\n", p + 1, d);
 			(*dp)[*nd].len = j - (*dp)[*nd].pos + 1;
 			if (++*nd == m)
 			{
