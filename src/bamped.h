@@ -62,6 +62,7 @@ void ld_gr(samFile *fp, bam_hdr_t *h, int mis, cgranges_t *gr);
 void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, dp_t **dp, uint32_t *md, uint64_t *nd);
 void out_bed(const cgranges_t *gr, bam_hdr_t *h, const char *out);
 void out_bgzf(const cgranges_t *gr, bam_hdr_t *h, const char *out);
+void dump_dp(bam_hdr_t *hdr, dp_t *dp, uint64_t nd, const char *out);
 void prep_an(const dp_t *dp, uint64_t nd, uint64_t gl, char *an);
 void draw_canvas(cairo_surface_t *sf, cairo_t *cr, bam_hdr_t *hdr, const kh_t *os,
 		const char *tt, const char *st, const char *an, uint32_t md, uint64_t gl);
