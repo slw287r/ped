@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 		char tt[PATH_MAX] = {'\0'}, an[NAME_MAX] = {'\0'};
 		// prepare title
 		char *p = strrchr(arg->in, '/');
-		snprintf(tt, PATH_MAX, "%s", p ? p + 1 : arg->in);
+		snprintf(tt, PATH_MAX / 2, "%s", p ? p + 1 : arg->in);
 		*strstr(tt, ".bam") = '\0';
 		if (ci != -1)
 			snprintf(tt, PATH_MAX, "%s: %s", tt, arg->ctg);
