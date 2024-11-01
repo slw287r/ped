@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 		draw_axis(cr, md, gl);
 		dump_dp(hdr, dp, nd, arg->out);
 		free(dp);
+		free(tt);
 	}
 	cr_destroy(gr);
 	bam_hdr_destroy(hdr);
