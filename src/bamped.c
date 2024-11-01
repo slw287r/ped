@@ -17,12 +17,12 @@ int main(int argc, char *argv[])
 	uint64_t gl = 0, nd = 0; // genome length in total
 	kh_t *os = kh_init();
 	ld_os(hdr, os, &gl);
-	// dbg os
+	/* dbg os
 	int i;
 	for (i = 0; i < hdr->n_targets; ++i)
 		printf("%s\t%d\t%"PRIu64"\n", hdr->target_name[i], hdr->target_len[i], kh_xval(os, i));
 	printf("%"PRIu64"\n", gl);
-	//
+	*/
 	// PE regions
 	ld_gr(fp, hdr, arg->mis, gr);
 	cairo_t *cr = NULL;
