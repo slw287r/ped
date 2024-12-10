@@ -278,24 +278,13 @@ void draw_ped1(cairo_t *cr, kh_t *os, uint32_t md, uint64_t gl, dp_t *dp)
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 	double ymx = ceil(log10(md)) + 1;
 	cairo_set_source_rgb(cr, 87 / 255.0, 122 / 255.0, 166 / 255.0);
-	if (dp->len <= 5) // use hist instead of rectangle to make it visible
-	{
-		cairo_set_line_width(cr, lw);
-		x = (double)(dp->pos + kh_xval(os, dp->tid) + (double)dp->len / 2) / gl;
-		y = 1 - (log10(dp->dep) + 1) / ymx;
-		cairo_move_to(cr, x, 1);
-		cairo_line_to(cr, x, y);
-		cairo_stroke(cr);
-	}
-	else
-	{
-		x = (double)(dp->pos + kh_xval(os, dp->tid)) / gl;
-		y = 1 - (log10(dp->dep) + 1) / ymx;
-		w = (double)dp->len / gl;
-		h = (log10(dp->dep) + 1) / ymx;
-		cairo_rectangle(cr, x, y, w, h);
-		cairo_fill(cr);
-	}
+	x = (double)(dp->pos + kh_xval(os, dp->tid)) / gl;
+	y = 1 - (log10(dp->dep) + 1) / ymx;
+	w = (double)dp->len / gl;
+	h = (log10(dp->dep) + 1) / ymx;
+	cairo_rectangle(cr, x, y, w, h);
+	cairo_stroke_preserve(cr);
+	cairo_fill(cr);
 }
 
 void ld_dp(const cgranges_t *cr, bam_hdr_t *hdr, int ci, dp_t **dp, uint32_t *md,
